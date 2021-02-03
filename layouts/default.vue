@@ -1,23 +1,41 @@
 <template>
   <v-app dark>
-    <v-app-bar
-    max-height="10vh"
-    elevation-1
-    position="fixed"
-    color="primary"
-    >
-      <v-btn large depressed color="primary">Login</v-btn>
-      <v-btn large depressed color="primary">Builder</v-btn>
-    </v-app-bar>
+      <v-app-bar max-height="12vh" color="primary" dark >
+        <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
+        <v-app-bar-title>onetapfood MCB</v-app-bar-title>
+        <v-spacer></v-spacer>
+        <v-btn large color="success">Logout</v-btn>
+      </v-app-bar>
+      <v-navigation-drawer v-model="drawer" absolute bottom temporary>
+        <v-list nav dense>
+          <v-list-item-group
+            v-model="group"
+            active-class="deep-purple--text text--accent-4"
+          >
+            <v-list-item>
+              <v-list-item-title>Foo</v-list-item-title>
+            </v-list-item>
+
+            <v-list-item>
+              <v-list-item-title>Bar</v-list-item-title>
+            </v-list-item>
+
+            <v-list-item>
+              <v-list-item-title>Fizz</v-list-item-title>
+            </v-list-item>
+
+            <v-list-item>
+              <v-list-item-title>Buzz</v-list-item-title>
+            </v-list-item>
+          </v-list-item-group>
+        </v-list>
+      </v-navigation-drawer>
     <v-main>
       <v-container>
         <nuxt />
       </v-container>
     </v-main>
-    <v-footer
-      :absolute="!fixed"
-      app
-    >
+    <v-footer absolute app>
       <span>&copy; OneTapFood MPB {{ new Date().getFullYear() }}</span>
     </v-footer>
   </v-app>
@@ -25,28 +43,16 @@
 
 <script>
 export default {
-  data () {
+  data() {
     return {
-      clipped: false,
       drawer: false,
-      fixed: false,
-      items: [
-        {
-          icon: 'mdi-apps',
-          title: 'Welcome',
-          to: '/'
-        },
-        {
-          icon: 'mdi-chart-bubble',
-          title: 'Inspire',
-          to: '/inspire'
-        }
-      ],
-      miniVariant: false,
-      right: true,
-      rightDrawer: false,
-      title: 'Vuetify.js'
-    }
-  }
-}
+      group: null,
+    };
+  },
+  watch: {
+    group() {
+      this.drawer = false;
+    },
+  },
+};
 </script>
