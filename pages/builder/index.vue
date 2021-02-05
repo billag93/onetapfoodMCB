@@ -81,6 +81,7 @@
                   label="Meal Type"
                   outlined
                   class="ml-3"
+                  v-model="currentType"
                 ></v-select>
               </v-col>
               <v-col>
@@ -89,19 +90,33 @@
                   label="Role"
                   outlined
                   class="mr-3"
+                  v-model="currentRole"
+                ></v-select>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col>
+                <v-select
+                  :items="Category"
+                  label="Category"
+                  outlined
+                  class="mx-6"
+                  v-model="currentCategory"
                 ></v-select>
               </v-col>
             </v-row>
             <v-row>
               <v-container class="ml-8 px-0" fluid>
                 <v-switch
-                  v-model="switch1"
-                  :label="`Is this Vegetarian: ${switch1.toString()}`"
+                  v-model="currentveg"
+                  :label="`Is this Vegetarian: ${currentveg.toString()}`"
                 ></v-switch>
               </v-container>
             </v-row>
             <v-row class="mb-4" align="center" justify="center">
-              <v-btn large color="primary">Save</v-btn>
+              <v-btn @click="saveMealComponent" large color="primary"
+                >Save</v-btn
+              >
             </v-row>
           </v-card>
         </v-row>
@@ -131,81 +146,129 @@
         </v-simple-table>
         <v-overlay :value="overlay2">
           <v-sheet rounded class="pa-4" color="primary">
-            <v-card rounded class="pa-8">
+            <v-card width="900px" rounded class="pa-8">
               <v-row>
-                  <v-col>
-                <v-card-title>Search Your Ingredient</v-card-title>
-                <v-text-field
-                  class="ml-6"
-                  label="Enter Your Ingredient"
-                  v-model="ingredientQuery"
-                ></v-text-field>
-                <v-btn
-                  @click="searchIngredients"
-                  class="ma-8 pa-1"
-                  small
-                  color="primary"
-                  >Submit</v-btn
-                >
-                <v-card-title>Ingredient Name</v-card-title>
-                <v-row>
-                  <v-simple-table fixed-header max-height="200px">
-                    <template v-slot:default>
-                      <thead>
-                        <tr>
-                          <th class="text-left">Quantity</th>
-                          <th class="text-left">Value</th>
-                          <th class="text-left">Measurement</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>1</td>
-                          <td>Medium</td>
-                          <td>200g</td>
-                        </tr>
-                      </tbody>
-                    </template>
-                  </v-simple-table>
-                </v-row>
+                <v-col align="center" justify="center">
+                  <v-card-title class="mx-8"
+                    >Search Your Ingredient</v-card-title
+                  >
+                  <v-text-field
+                    class="mx-8"
+                    label="Enter Your Ingredient"
+                    v-model="ingredientQuery"
+                  ></v-text-field>
+                  <v-btn
+                    @click="searchIngredients"
+                    class="ma-1 pa-2"
+                    small
+                    color="primary"
+                    >Submit</v-btn
+                  >
+                  <v-row>
+                    <v-col>
+                      <v-select
+                        :items="OTFingredients.name"
+                        label="OTF Ingredients"
+                        outlined
+                        class="ma-2"
+                        v-model="currentOTFingredient"
+                      ></v-select>
+                    </v-col>
+                    <v-col>
+                      <v-btn
+                        class="ma-2"
+                        @click="queryNSApi"
+                        small
+                        color="primary"
+                        >Search Ingredient API</v-btn
+                      >
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-select
+                      :items="NSAingredients"
+                      item-text="food_name"
+                      item-value="food_name"
+                      label="Find Other Ingredients Here"
+                      outlined
+                      class="mx-5"
+                      v-model="currentNSAingredient"
+                    ></v-select>
+                  </v-row>
+                  <v-row align="center" justify="center">
+                    <v-card-title>{{ OTFingredients.name }}</v-card-title>
+                  </v-row>
+                  <v-row align="center" justify="center">
+                    <v-simple-table fixed-header max-height="200px">
+                      <template v-slot:default>
+                        <thead>
+                          <tr>
+                            <th class="text-left">Quantity</th>
+                            <th class="text-left">Value</th>
+                            <th class="text-left">Measurement</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>1</td>
+                            <td>Medium</td>
+                            <td>200g</td>
+                          </tr>
+                        </tbody>
+                      </template>
+                    </v-simple-table>
+                  </v-row>
                 </v-col>
                 <v-col>
-                <v-row align="center" justify="center">
-                  <v-card-title>Amount for Recipe</v-card-title>
-                </v-row>
-                <v-row>
-                  <v-select
-                    label="Units Of Measure"
-                    :items="measures"
-                    v-model="measurement"
-                  >
-                  </v-select>
-                </v-row>
-                <v-row>
-                  <v-col>
-                    <v-card-subtitle>Number Of Units</v-card-subtitle>
-                  </v-col>
-                  <v-col>
-                    <v-text-field
-                      label="Amount to two decimal places"
-                      outlined
-                      type="Number"
-                    ></v-text-field>
-                  </v-col>
-                </v-row>
-                <v-row>
-                  <v-btn right v-if="add" small color="success">Add</v-btn>
-                  <v-btn right v-if="update" small color="primary"
-                    >Update</v-btn
-                  >
-                  <v-btn
-                    @click="overlay2 = !overlay2"
-                    x-small
-                    left
-                    color="success"
-                    >Close</v-btn
-                  >
-                </v-row>
+                  <v-row align="center" justify="center">
+                    <v-card-title class="mt-3">Amount for Recipe</v-card-title>
+                  </v-row>
+                  <v-row>
+                    <v-select
+                      label="Units Of Measure"
+                      :items="measures"
+                      v-model="measurement"
+                    >
+                    </v-select>
+                  </v-row>
+                  <v-row>
+                    <v-col>
+                      <v-card-subtitle class="text-subtitle-1"
+                        >Number Of Units</v-card-subtitle
+                      >
+                    </v-col>
+                    <v-col>
+                      <v-text-field
+                        label="Amount to two decimal places"
+                        outlined
+                        type="Number"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-btn
+                      right
+                      @click="attachIngredients"
+                      v-if="add"
+                      small
+                      color="primary"
+                      >Add</v-btn
+                    >
+                    <v-btn right v-if="update" small color="primary"
+                      >Update</v-btn
+                    >
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      @click="overlay2 = !overlay2"
+                      small
+                      right
+                      color="primary"
+                      >Close</v-btn
+                    >
+                  </v-row>
+                  <v-row align="center" justify="center">
+                    <v-btn class="ma-4" @click="createNewIngredient" color="success">Save Ingredient to OTF</v-btn>
+                  </v-row>
                 </v-col>
               </v-row>
             </v-card>
@@ -221,18 +284,33 @@ export default {
   data() {
     return {
       mealtype: ["Breakfast", "Lunch", "Supper"],
+      currentType: null,
       role: ["Main Dish", "Side Dish"],
+      currentRole: null,
       add: true,
       update: false,
-      switch1: true,
       overlay: false,
       overlay1: false,
       overlay2: false,
+      currentveg: false,
       recipeURL: undefined,
+      Category: [
+        "Vegetable",
+        "Fruit",
+        "Grains",
+        "Dairy",
+        "Meat",
+        "Eggs",
+        "Nuts",
+      ],
+      currentCategory: null,
       ingredientQuery: null,
+      ingredient: null,
+      ingredients: [],
+      veg: null,
       measurement: undefined,
-      newsummary: undefined,
-      newdescription: undefined,
+      newsummary: null,
+      newdescription: null,
       myrecipe: [],
       measures: [
         "g",
@@ -245,10 +323,19 @@ export default {
         "fluid ounce",
         "lb",
       ],
-      ingredients: [],
+      currentOTFingredient: null,
+      currentNSAingredient: null,
       description: null,
       summary: null,
     };
+  },
+  computed: {
+    OTFingredients(context) {
+      return context.$store.state.OTFingredients;
+    },
+    NSAingredients(context) {
+      return context.$store.state.NSAingredients;
+    },
   },
   methods: {
     changeSummary() {
@@ -279,7 +366,7 @@ export default {
           this.ingredients = this.myrecipe.ingredients;
           this.description = this.myrecipe.description;
           this.summary = this.myrecipe.description;
-          //save result to vuex
+          this.$store.commit("setRecipe", myrecipe);
         })
         .catch((err) => {
           console.log(err);
@@ -304,8 +391,7 @@ export default {
           if (result.data.length <= 0) {
             this.queryNSApi();
           } else {
-            // set returned ingredients to a var
-            // save otf results to vuex
+            this.$store.commit("setOTFIngredient", result);
           }
         })
         .catch((err) => {
@@ -319,7 +405,9 @@ export default {
         .$post(
           "https://nutri-s1.p.rapidapi.com/nutrients",
           {
-            query: "100 grams " + this.ingredientQuery.replace(/ /g, "-").toLowerCase(),
+            query:
+              "100 grams " +
+              this.ingredientQuery.replace(/ /g, "-").toLowerCase(),
           },
           {
             headers: {
@@ -333,41 +421,88 @@ export default {
           }
         )
         .then((result) => {
-          console.log(result.data);
-          //save to vuex
+          console.log(result);
+          this.$store.commit("setNSAingredients", result.foods);
         })
         .catch((err) => {
           console.log(err.reponse);
           this.disabled = false;
         });
     },
-    createNewIngredient(item) {
-           axios
-               .post(
-                   "/api/v2/meal-builder/ingredients/create",
-                   {
-                       ingredient: item,
-                   },
-                   {
-                       headers: {
-                           "Content-Type": "application/json",
-                       },
-                   }
-               )
-               .then((result) => {
-                   console.log(result.data);
-                   if (result.status == 200) {
-                       this.ingredIndex++;
-                       this.disabled = false;
-                       this.searchResult = false;
-                       this.otfResults.push(result.data);
-                   }
-               })
-               .catch((err) => {
-                   console.log(err.reponse);
-               });
-       },
+    createNewIngredient(currentOTFingredient) {this.$axios.$post("http://api.onetapfood.ca/api/v2/meal-builder/ingredients/create",
+          {
+            ingredient: currentOTFingredient,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        )
+        .then((result) => {
+          console.log(result);
+          if (result.status == 200) {
+            this.ingredIndex++;
+            this.disabled = false;
+            this.searchResult = false;
+            this.otfResults.push(result.data);
+          }
+        })
+        .catch((err) => {
+          console.log(err.reponse);
+        });
+    },
 
+    saveMealComponent() {
+      const formValid =
+        this.newdescription != null &&
+        this.newsummary != null &&
+        this.currentType != null &&
+        this.currentRole != null &&
+        this.currentCategory != null;
+      if (formValid) {
+        axios
+          .post("/api/v2/meal-builder/component", {
+            raw: this.showARecipe,
+            role: this.currentRole,
+            type: this.currentType,
+            category: this.currentCategory,
+            veg: this.currentveg,
+            summary: this.newsummary,
+            description: this.newdescription,
+          })
+          .then((result) => {
+            console.log(result.data);
+            this.componentSave = false;
+            this.otfComponent = result.data;
+          })
+          .catch((err) => {
+            console.log(err.response);
+          });
+      } else {
+        console.log("validation failed");
+      }
+    },
+
+    attachIngredients() {
+      console.log("lets go!");
+      let ready = this.otfComponent != null && this.confirmedIngred.length > 0;
+      if (ready) {
+        $axios
+          .$post("/api/v2/meal-builder/ingredients/attach", {
+            ingredients: this.confirmedIngred,
+            componentId: this.otfComponent.id,
+          })
+          .then((result) => {
+            console.log(result.data);
+          })
+          .catch((err) => {});
+      } else {
+        this.errors.push(
+          "you're not ready to save yet. Save a component and add ingredients"
+        );
+      }
+    },
   },
 };
 </script>
