@@ -167,7 +167,9 @@
                   <v-row>
                     <v-col>
                       <v-select
-                        :items="OTFingredients.name"
+                        :items="OTFingredients"
+                        item-text="name"
+                        item-value="id"
                         label="OTF Ingredients"
                         outlined
                         class="ma-2"
@@ -196,23 +198,23 @@
                     ></v-select>
                   </v-row>
                   <v-row align="center" justify="center">
-                    <v-card-title>{{ OTFingredients.name }}</v-card-title>
+                    <v-card-title>{{currentName}}</v-card-title>
                   </v-row>
                   <v-row align="center" justify="center">
-                    <v-simple-table fixed-header max-height="200px">
+                    <v-simple-table fixed-header height="200px">
                       <template v-slot:default>
                         <thead>
                           <tr>
                             <th class="text-left">Quantity</th>
-                            <th class="text-left">Value</th>
-                            <th class="text-left">Measurement</th>
+                            <th class="text-left">Measure</th>
+                            <th class="text-left">Serving Weight</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr>
-                            <td>1</td>
-                            <td>Medium</td>
-                            <td>200g</td>
+                          <tr v-for="item in currentConversions" :key="item.measure">
+                            <td>{{item.qty}}</td>
+                            <td>{{item.measure}}</td>
+                            <td>{{item.serving_weight}}</td>
                           </tr>
                         </tbody>
                       </template>
@@ -267,7 +269,12 @@
                     >
                   </v-row>
                   <v-row align="center" justify="center">
-                    <v-btn class="ma-4" @click="createNewIngredient" color="success">Save Ingredient to OTF</v-btn>
+                    <v-btn
+                      class="ma-4"
+                      @click="createNewIngredient()"
+                      color="success"
+                      >Save Ingredient to OTF</v-btn
+                    >
                   </v-row>
                 </v-col>
               </v-row>
@@ -336,6 +343,34 @@ export default {
     NSAingredients(context) {
       return context.$store.state.NSAingredients;
     },
+    currentName(context){
+      let ingredient = context.$store.state.OTFingredients.filter((item)=>{
+        return item.id == this.currentOTFingredient
+      })
+      if(ingredient.length > 0){
+        let name = (ingredient[0].name)
+      console.log(name)
+      return name
+      }
+      else{
+        return null
+      }
+    },
+    currentConversions(context){
+      let ingredient = context.$store.state.OTFingredients.filter((item)=>{
+        return item.id == this.currentOTFingredient
+      })
+      if(ingredient.length > 0){
+        let conversions = JSON.parse(ingredient[0].conversions)
+      console.log(conversions)
+      return conversions
+      }
+      else{
+        return null
+      }
+      
+    }
+    
   },
   methods: {
     changeSummary() {
@@ -388,14 +423,10 @@ export default {
         )
         .then((result) => {
           console.log(result);
-          if (result.data.length <= 0) {
-            this.queryNSApi();
-          } else {
-            this.$store.commit("setOTFIngredient", result);
-          }
+          this.$store.commit("setOTFIngredients", result);
         })
         .catch((err) => {
-          console.log(err.reponse);
+          console.log(err);
           this.disabled = false;
         });
     },
@@ -429,28 +460,32 @@ export default {
           this.disabled = false;
         });
     },
-    createNewIngredient(currentOTFingredient) {this.$axios.$post("http://api.onetapfood.ca/api/v2/meal-builder/ingredients/create",
-          {
-            ingredient: currentOTFingredient,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
+    createNewIngredient() {
+      let ingredient = this.NSAingredients.filter((item) => {
+        return item.food_name == this.currentNSAingredient;
+      });
+      if (ingredient.length > 0) {
+        this.$axios
+          .$post(
+            "http://api.onetapfood.ca/api/v2/meal-builder/ingredients/create",
+            {
+              ingredient: ingredient[0],
             },
-          }
-        )
-        .then((result) => {
-          console.log(result);
-          if (result.status == 200) {
-            this.ingredIndex++;
-            this.disabled = false;
-            this.searchResult = false;
-            this.otfResults.push(result.data);
-          }
-        })
-        .catch((err) => {
-          console.log(err.reponse);
-        });
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          )
+          .then((result) => {
+            console.log(result);
+            this.$store.commit("setOTFIngredients", result);
+            this.currentOTFingredient = result.id;
+          })
+          .catch((err) => {
+            console.log(err.reponse);
+          });
+      }
     },
 
     saveMealComponent() {

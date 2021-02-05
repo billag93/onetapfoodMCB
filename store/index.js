@@ -1,15 +1,16 @@
 export const state = () => ({
    recipes : [],
    OTFingredients:[],
-   NSAingredients:[] 
+   NSAingredients:[],
 })
 
 export const mutations = {
     setRecipe(state,myrecipe){
         state.recipes = myrecipe
     },
-    setOTFIngredient(state,OTFIngredient){
-        state.OTFIngredient = OTFIngredient
+    setOTFIngredients(state,OTFIngredients){
+        console.log(OTFIngredients)
+        state.OTFingredients = OTFIngredients
     },
     setNSAingredients(state,NSAingredients){
         state.NSAingredients = NSAingredients
