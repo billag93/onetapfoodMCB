@@ -157,8 +157,8 @@
             v-if="isLoading"
           ></v-progress-circular>
         </v-col>
-        <v-col>
-          <v-card>
+        <v-col align="center" justify="center">
+          <v-card class="ma-2 pa-6" >
             <v-btn @click="attachIngredients" large color="success"
               >Add Your Ingredient</v-btn
             >
