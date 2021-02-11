@@ -98,6 +98,8 @@
               <v-col>
                 <v-select
                   :items="Category"
+                  item-value="id"
+                  item-text="text"
                   label="Category"
                   outlined
                   class="mx-6"
@@ -115,38 +117,61 @@
             </v-row>
             <v-row class="mb-4" align="center" justify="center">
               <v-btn @click="saveMealComponent" large color="primary"
-                >Save</v-btn
+                >Save Recipe</v-btn
               >
             </v-row>
           </v-card>
         </v-row>
       </v-col>
       <v-col>
-        <v-simple-table fixed-header max-height="870px">
-          <template v-slot:default>
-            <thead>
-              <tr>
-                <th class="text-left">Name</th>
-                <th class="text-left">In Recipe?</th>
-                <th class="text-left">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in ingredients" :key="item.name">
-                <td>{{ item }}</td>
-                <td>{{ item.recipe }}</td>
-                <td>
-                  <v-btn @click="overlay2 = !overlay2" small color="primary"
-                    >manage ingredient</v-btn
-                  >
-                </td>
-              </tr>
-            </tbody>
-          </template>
-        </v-simple-table>
+        <v-col>
+          <v-simple-table fixed-header max-height="870px">
+            <template v-slot:default>
+              <thead>
+                <tr>
+                  <th class="text-left">Name</th>
+                  <th class="text-left">In Recipe?</th>
+                  <th class="text-left">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in ingredients" :key="item.name">
+                  <td>{{ item }}</td>
+                  <td>{{ item.recipe }}</td>
+                  <td>
+                    <v-btn @click="openOverlay(item)" small color="primary"
+                      >manage ingredient</v-btn
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </template>
+          </v-simple-table>
+        </v-col>
+        <v-col align="center" justify="center">
+          <v-progress-circular
+            :size="70"
+            :width="7"
+            color="primary"
+            indeterminate
+            v-if="isLoading"
+          ></v-progress-circular>
+        </v-col>
+        <v-col>
+          <v-card>
+            <v-btn @click="attachIngredients" large color="success"
+              >Add Your Ingredient</v-btn
+            >
+          </v-card>
+        </v-col>
         <v-overlay :value="overlay2">
           <v-sheet rounded class="pa-4" color="primary">
             <v-card width="900px" rounded class="pa-8">
+              <v-row>
+                <v-card-title
+                  >Search For {{ ingredientNameEditing }}</v-card-title
+                >
+              </v-row>
               <v-row>
                 <v-col align="center" justify="center">
                   <v-card-title class="mx-8"
@@ -198,7 +223,7 @@
                     ></v-select>
                   </v-row>
                   <v-row align="center" justify="center">
-                    <v-card-title>{{currentName}}</v-card-title>
+                    <v-card-title>{{ currentName }}</v-card-title>
                   </v-row>
                   <v-row align="center" justify="center">
                     <v-simple-table fixed-header height="200px">
@@ -211,10 +236,13 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="item in currentConversions" :key="item.measure">
-                            <td>{{item.qty}}</td>
-                            <td>{{item.measure}}</td>
-                            <td>{{item.serving_weight}}</td>
+                          <tr
+                            v-for="item in currentConversions"
+                            :key="item.measure"
+                          >
+                            <td>{{ item.qty }}</td>
+                            <td>{{ item.measure }}</td>
+                            <td>{{ item.serving_weight }}</td>
                           </tr>
                         </tbody>
                       </template>
@@ -229,7 +257,7 @@
                     <v-select
                       label="Units Of Measure"
                       :items="measures"
-                      v-model="measurement"
+                      v-model="unit"
                     >
                     </v-select>
                   </v-row>
@@ -244,27 +272,35 @@
                         label="Amount to two decimal places"
                         outlined
                         type="Number"
+                        v-model="value"
                       ></v-text-field>
                     </v-col>
                   </v-row>
                   <v-row>
-                    <v-btn
-                      right
-                      @click="attachIngredients"
-                      v-if="add"
-                      small
-                      color="primary"
-                      >Add</v-btn
-                    >
-                    <v-btn right v-if="update" small color="primary"
-                      >Update</v-btn
-                    >
+                    <v-col align="center" justify="center">
+                      <v-btn
+                        right
+                        @click="addIngredient"
+                        :disabled="
+                          currentOTFingredient == null ||
+                          unit == null ||
+                          value == null
+                        "
+                        small
+                        color="primary"
+                        >{{ isInStore ? "Update" : "Add" }}</v-btn
+                      >
+                      <v-btn
+                        right
+                        @click="removeIngredient"
+                        v-if="isInStore"
+                        small
+                        color="primary"
+                        >Remove</v-btn
+                      >
+                    </v-col>
                     <v-spacer></v-spacer>
-                    <v-btn
-                      @click="overlay2 = !overlay2"
-                      small
-                      right
-                      color="primary"
+                    <v-btn @click="closeOverlay" small right color="primary"
                       >Close</v-btn
                     >
                   </v-row>
@@ -275,6 +311,15 @@
                       color="success"
                       >Save Ingredient to OTF</v-btn
                     >
+                  </v-row>
+                  <v-row>
+                    <v-progress-circular
+                      :size="70"
+                      :width="7"
+                      color="primary"
+                      indeterminate
+                      v-if="isLoading"
+                    ></v-progress-circular>
                   </v-row>
                 </v-col>
               </v-row>
@@ -290,89 +335,142 @@
 export default {
   data() {
     return {
+      isLoading: false,
       mealtype: ["Breakfast", "Lunch", "Supper"],
       currentType: null,
       role: ["Main Dish", "Side Dish"],
       currentRole: null,
-      add: true,
+      add: false,
+      remove: false,
       update: false,
       overlay: false,
       overlay1: false,
       overlay2: false,
       currentveg: false,
       recipeURL: undefined,
+      ingredientNameEditing: null,
       Category: [
-        "Vegetable",
-        "Fruit",
-        "Grains",
-        "Dairy",
-        "Meat",
-        "Eggs",
-        "Nuts",
+        {text:"Vegetable",id:0},
+        {text:"Fruit", id:1},
+        {text:"Grains",id:2},
+        {text:"Dairy",id:3},
+        {text:"Meat", id:4},
+        {text:"Eggs",id:5},
+        {text:"Nuts",id:6},
       ],
       currentCategory: null,
       ingredientQuery: null,
       ingredient: null,
       ingredients: [],
       veg: null,
-      measurement: undefined,
-      newsummary: null,
-      newdescription: null,
       myrecipe: [],
       measures: [
-        "g",
-        "cup",
-        "teaspoon",
-        "tablespoon",
-        "ml",
-        "L",
-        "mg",
-        "fluid ounce",
-        "lb",
+        
+                "cup",
+                "Tbsp",
+                "tsp",
+                "g",
+                "kg",
+                "lb",
+                "liter",
+                "ml",
+                "fl oz",
+                "oz",
+                "qt",
+                "gallon",
+                "small",
+                'medium',
+                'large'
       ],
       currentOTFingredient: null,
       currentNSAingredient: null,
       description: null,
       summary: null,
+      unit: null,
+      value: null,
+      otfComponent: null,
     };
   },
   computed: {
+    confirmedIngred(context) {
+      return context.$store.state.ingredients;
+    },
+    isInStore(context) {
+      if (this.currentOTFingredient == null) {
+        return false;
+      } else {
+        let index = context.$store.state.ingredients.findIndex((el) => {
+          return el.id == this.currentOTFingredient;
+        });
+        if (index >= 0) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+    },
     OTFingredients(context) {
       return context.$store.state.OTFingredients;
     },
     NSAingredients(context) {
       return context.$store.state.NSAingredients;
     },
-    currentName(context){
-      let ingredient = context.$store.state.OTFingredients.filter((item)=>{
-        return item.id == this.currentOTFingredient
-      })
-      if(ingredient.length > 0){
-        let name = (ingredient[0].name)
-      console.log(name)
-      return name
-      }
-      else{
-        return null
+    currentName(context) {
+      let ingredient = context.$store.state.OTFingredients.filter((item) => {
+        return item.id == this.currentOTFingredient;
+      });
+      if (ingredient.length > 0) {
+        let name = ingredient[0].name;
+        console.log(name);
+        return name;
+      } else {
+        return null;
       }
     },
-    currentConversions(context){
-      let ingredient = context.$store.state.OTFingredients.filter((item)=>{
-        return item.id == this.currentOTFingredient
-      })
-      if(ingredient.length > 0){
-        let conversions = JSON.parse(ingredient[0].conversions)
-      console.log(conversions)
-      return conversions
+    currentConversions(context) {
+      let ingredient = context.$store.state.OTFingredients.filter((item) => {
+        return item.id == this.currentOTFingredient;
+      });
+      if (ingredient.length > 0) {
+        let conversions = JSON.parse(ingredient[0].conversions);
+        console.log(conversions);
+        return conversions;
+      } else {
+        return null;
       }
-      else{
-        return null
-      }
-      
-    }
-    
+    },
   },
   methods: {
+    openOverlay(str) {
+      this.ingredientNameEditing = str;
+      this.overlay2 = true;
+    },
+    closeOverlay() {
+      this.currentOTFingredient = null;
+      this.ingredientNameEditing = null;
+      this.ingredientQuery = null;
+      this.currentNSAingredient= null;
+      this.value = null;
+      this.overlay2 = false;
+    },
+    removeIngredient() {
+      this.$store.commit("removeIngredient", {
+        id: this.currentOTFingredient,
+        amount: {
+          unit: this.unit,
+          value: this.value,
+        },
+      });
+    },
+    addIngredient() {
+      this.$store.commit("addIngredient", {
+        id: this.currentOTFingredient,
+        amount: {
+          unit: this.unit,
+          value: this.value,
+        },
+      });
+    },
     changeSummary() {
       this.overlay = !this.overlay;
       this.myrecipe.description = this.newsummary;
@@ -382,6 +480,7 @@ export default {
       this.myrecipe.description = this.newdescription;
     },
     getRecipeJson() {
+      this.isLoading = true;
       this.$axios
         .$post(
           "https://mycookbook-io1.p.rapidapi.com/recipes/rapidapi",
@@ -396,6 +495,7 @@ export default {
           }
         )
         .then((result) => {
+          this.isLoading = false;
           console.log(result);
           this.myrecipe = result[0];
           this.ingredients = this.myrecipe.ingredients;
@@ -404,11 +504,12 @@ export default {
           this.$store.commit("setRecipe", myrecipe);
         })
         .catch((err) => {
+          this.isLoading = false;
           console.log(err);
         });
     },
     searchIngredients() {
-      this.disabled = true;
+      this.isLoading = true;
       this.$axios
         .$post(
           "http://api.onetapfood.ca/api/v2/meal-builder/ingredients/search",
@@ -422,16 +523,18 @@ export default {
           }
         )
         .then((result) => {
-          console.log(result);
+          this.isLoading = false;
+          // console.log(result);
           this.$store.commit("setOTFIngredients", result);
         })
         .catch((err) => {
+          this.isLoading = false;
           console.log(err);
-          this.disabled = false;
         });
     },
 
     queryNSApi() {
+      this.isLoading = true;
       this.$axios
         .$post(
           "https://nutri-s1.p.rapidapi.com/nutrients",
@@ -452,10 +555,12 @@ export default {
           }
         )
         .then((result) => {
+          this.isLoading = false;
           console.log(result);
           this.$store.commit("setNSAingredients", result.foods);
         })
         .catch((err) => {
+          this.isLoading = false;
           console.log(err.reponse);
           this.disabled = false;
         });
@@ -465,6 +570,7 @@ export default {
         return item.food_name == this.currentNSAingredient;
       });
       if (ingredient.length > 0) {
+        this.isLoading = true;
         this.$axios
           .$post(
             "http://api.onetapfood.ca/api/v2/meal-builder/ingredients/create",
@@ -478,41 +584,45 @@ export default {
             }
           )
           .then((result) => {
+            this.isLoading = false;
             console.log(result);
-            this.$store.commit("setOTFIngredients", result);
+            this.$store.commit("pushOTFIngredient", result);
             this.currentOTFingredient = result.id;
           })
           .catch((err) => {
+            this.isLoading = false;
             console.log(err.reponse);
           });
       }
     },
 
     saveMealComponent() {
+      this.isLoading = true;
       const formValid =
-        this.newdescription != null &&
-        this.newsummary != null &&
+        this.description != null &&
+        this.summary != null &&
         this.currentType != null &&
         this.currentRole != null &&
         this.currentCategory != null;
       if (formValid) {
-        axios
-          .post("/api/v2/meal-builder/component", {
-            raw: this.showARecipe,
+        this.$axios.$post("http://api.onetapfood.ca/api/v2/meal-builder/component", {
+            raw: this.myrecipe,
             role: this.currentRole,
             type: this.currentType,
             category: this.currentCategory,
             veg: this.currentveg,
-            summary: this.newsummary,
-            description: this.newdescription,
+            summary: this.summary,
+            description: this.description,
           })
           .then((result) => {
-            console.log(result.data);
+            console.log(result)
+            this.isLoading = false;
             this.componentSave = false;
-            this.otfComponent = result.data;
+            this.otfComponent = result;
           })
           .catch((err) => {
-            console.log(err.response);
+            this.isLoading = false;
+            console.log(err);
           });
       } else {
         console.log("validation failed");
@@ -520,22 +630,25 @@ export default {
     },
 
     attachIngredients() {
+      this.isLoading = true;
       console.log("lets go!");
       let ready = this.otfComponent != null && this.confirmedIngred.length > 0;
       if (ready) {
-        $axios
-          .$post("/api/v2/meal-builder/ingredients/attach", {
+        this.$axios
+          .$post("http://api.onetapfood.ca/api/v2/meal-builder/ingredients/attach", {
             ingredients: this.confirmedIngred,
             componentId: this.otfComponent.id,
           })
           .then((result) => {
-            console.log(result.data);
+            this.isLoading = false;
+            console.log(result);
           })
-          .catch((err) => {});
+          .catch((err) => {
+            this.isLoading = false
+          });
       } else {
-        this.errors.push(
-          "you're not ready to save yet. Save a component and add ingredients"
-        );
+        this.isLoading = false;
+        console.log(err)
       }
     },
   },
